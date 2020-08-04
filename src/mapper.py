@@ -2,27 +2,44 @@ from PIL import Image
 
 import math
 import re
-from functools import reduce
+import tkinter as tk
+from tkinter import filedialog, ttk
+import threading
 
 import population
 import province
 import vicmap
 
 
+mod_dir_loc = ""
+mod_dir = None
+save_file_entry = None
+save_file_loc = ""
 save_file = None
+
+map_type_entry = None
+map_type = ""
+
+global_population = 0
+mean_savings = 0
+sd_savings = 0
+all_pops = []
+test_map = None
+progress = None
 
 def split_dec(line):
     sides = line.split("=")
     return (sides[0].strip(), sides[1].strip())
 
 
-def open_save():
+def open_save(location):
     global save_file
-    save_file = open("test_save.v2", "r")
+    save_file = open(location, "r")
     
 
 def read_save():
     global save_file
+    
     i = 0
     current_prov = None
     for line in save_file:
@@ -39,7 +56,49 @@ def read_save():
             population.POP(save_file, current_prov, split_dec(line)[0])
     print(i)
     
-def make_map(map_func):
+
+def load_UI():
+    
+    global progress, map_type_entry, save_file_entry, mod_dir
+    
+    window = tk.Tk()
+    window.title("Victoria 2 Mapper")
+    
+    save_file_entry = tk.Entry(width=100)
+    mod_dir = tk.Entry(width=100)
+    
+    def set_mod_dir():
+        global mod_dir_loc
+        mod_dir_loc = tk.filedialog.askdirectory()
+        mod_dir.insert(0, mod_dir_loc)
+    
+    ld_mod = tk.Button(text="Choose Mod", command=set_mod_dir)
+    
+    def set_save_file():
+        global save_file_loc
+        save_file_loc = tk.filedialog.askopenfilename()
+        save_file_entry.insert(0, save_file_loc)
+    
+    ld_save = tk.Button(text="Choose Save", command=set_save_file)
+    
+    map_type_entry = tk.Entry(width = 100)
+    
+    make_button = tk.Button(text="Make Map", command=threading.Thread(target=make_map).start)
+    
+    progress = tk.ttk.Progressbar()
+    
+    save_file_entry.grid(row = 0, column = 0, padx=3, pady=3)
+    ld_save.grid(row = 0, column = 1, padx=3, pady=3)
+    mod_dir.grid(row = 1, column = 0, padx=3, pady=3)
+    ld_mod.grid(row = 1, column = 1, padx=3, pady=3)
+    map_type_entry.grid(row = 2, column = 0, padx=3, pady=3)
+    make_button.grid(row = 3, column = 0, padx=3, pady=3)
+    progress.grid(row = 4, column = 0, padx=3, pady=3)
+    window.mainloop()
+
+# Map Function #
+
+def draw_map(map_func):
     global test_map
     # Some poorly made maps have invalid colors, this uses the previous color as a backup.
     prev_color = None
@@ -130,9 +189,6 @@ def pop_magnitude_savings():
             return (255, 255, 255)
         if this_prov.total_pop == 0:
             return (0, 0, 0)
-        
-        
-        
         if this_prov.mag_savings < 0:
             return (255, 0, 0)
         return (0, 255, 0)
@@ -163,38 +219,68 @@ def population_heatmap():
         return (int(255*(this_prov.total_pop/province.largest_prov_pop)), 0, 0)
     return out_func
 
-population.make_pop_regex()
 
-print(population.pop_regex)
+def make_map():
+    global global_population, mean_savings, sd_savings, all_pops, test_map, progress, save_file_loc, mod_dir_loc
+    
+    
+    # Intertpret what kind of map the user wants.
+    map_types = {
+        "population" : (population_heatmap, 0),
+        "attr_percent" : (pop_attr_percent_map, 2),
+        "attr_heatmap" : (pop_attr_heatmap, 2),
+        "attr" : (pop_attr_map, 1)
+    }
+    
+    params = map_type_entry.get().split(sep=' ')
+    
+    map_type_func = map_types[params[0]][0]
+    map_type_param_amnt = map_types[params[0]][1]
+    
+    map_type_func_params = None
+    
+    if map_type_param_amnt == 0:
+        map_type_func_params = ()
+    else:
+        map_type_func_params = tuple(params[1:1+map_type_param_amnt])
+    
+    
+    population.make_pop_regex()
+    progress.text = "Loading Files..."
+    vicmap.load_map(mod_dir_loc + "/map/provinces.bmp")
+    province.load_provinces(mod_dir_loc + "/map/definition.csv")
+    
+    
+    progress.text = "Reading Save..."
+    
+    open_save(save_file_loc)
+    read_save()
+    
+    progress.text = "Doing Stats..."
+    
+    for prov in province.provinces:
+        prov.get_population()
+    
+    for prov in province.provinces:
+        all_pops += prov.POPs
+    
+    global_population = sum([prov.total_pop for prov in province.provinces])
+    
+    mean_savings += sum([pop.money for pop in all_pops]) / global_population
+    
+    sd_savings = math.sqrt(sum([((pop.money / pop.size - mean_savings)**2) * pop.size for pop in all_pops]) / global_population)
+    
+    img = Image.new('RGB', (vicmap.MAP_W, vicmap.MAP_H), "BLACK")
+    test_map = img.load()
+    
+    progress.text = "Drawing Map..."
+    
+    draw_map(map_type_func(*map_type_func_params))
 
-vicmap.load_map("C:\Program Files (x86)\Steam\steamapps\common\Victoria 2\mod\PDXMP-2\map\provinces.bmp")
-province.load_provinces("C:\Program Files (x86)\Steam\steamapps\common\Victoria 2\mod\PDXMP-2\map\definition.csv")
+    img.save("map.png")
+    img.show()
 
-open_save()
-read_save()
+load_UI()
 
-for prov in province.provinces:
-    prov.get_population()
 
-global_population = 0
-for prov in province.provinces:
-    global_population += prov.total_pop
 
-mean_savings = 0
-for prov in province.provinces:
-    mean_savings += sum([pop.money for pop in prov.POPs])
-mean_savings = mean_savings / global_population
-
-all_pops = []
-for prov in province.provinces:
-    all_pops += prov.POPs
-
-sd_savings = math.sqrt(sum([((pop.money / pop.size - mean_savings)**2) * pop.size for pop in all_pops]) / global_population)
-
-img = Image.new('RGB', (vicmap.MAP_W, vicmap.MAP_H), "BLACK")
-test_map = img.load()
-
-make_map(pop_attr_percent_map("religion", "sunni"))
-
-img.save("map.png")
-img.show()
