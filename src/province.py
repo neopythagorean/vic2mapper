@@ -40,7 +40,7 @@ class Province:
             return ("",)
         res_out = (max(res_dict, key=res_dict.get),)
         if len(res_dict) > 1:
-            second_largest = sorted(res_dict.items(), key=lambda kv:(kv[1], kv[0]))[1]
+            second_largest = sorted(res_dict.items(), key=lambda kv:(kv[1], kv[0]), reverse=True)[1]
             if second_largest[1] > (.33 * self.total_pop):
                 res_out = (max(res_dict, key=res_dict.get), second_largest[0])
             else:
@@ -55,7 +55,7 @@ class Province:
         self.POPs = []
         self.total_pop = 0
         
-        # There in default vic Zouar has a color with a . at the end for some reason?
+        # In base vic2's defines.csv Zouar has a color with a . at the end for some reason?
         self.color = (int(info_arr[1]), int(info_arr[2]), int(info_arr[3].replace('.', '')))
         self.name = info_arr[4]
         self.is_water = False

@@ -1,5 +1,6 @@
 
 import province
+import re
 
 pop_types = {
     "aristocrats"   : (11, 40, 93), 
@@ -59,6 +60,10 @@ religions = {
     ""              : rgbf(0.0, 0.0, 0.0) # Empty religion -- Something fucked up
 }
 
+cultures = {
+    ""              : (0, 0, 0)
+}
+
 def split_dec(line):
     sides = line.split("=")
     return (sides[0].strip(), sides[1].strip())
@@ -71,6 +76,25 @@ def make_pop_regex():
         pop_regex += pop_keys[i] + "|"
     pop_regex += pop_keys[len(pop_keys)-2]
     pop_regex += ")="
+
+def load_culture(cultures_loc):
+    cultures_file = open(cultures_loc, "r")
+    bracket_stack = 0
+    current_culture = ""
+    for line in cultures_file:
+        if bracket_stack == 1:
+            t_line = line[0:line.find('#')].strip()
+            if re.search("{", t_line):
+                current_culture = split_dec(t_line)[0]
+        elif bracket_stack == 2:
+            t_line = line[0:line.find('#')].strip()
+            if re.search("color", t_line):
+                cultures[current_culture] = tuple(map(int, filter( lambda x: x!="",t_line[t_line.find("{")+1 : t_line.find("}")].split(sep=" "))))
+        
+        if re.search("{", line):
+            bracket_stack += 1
+        if re.search("}", line):
+            bracket_stack -= 1
 
 class POP:
     

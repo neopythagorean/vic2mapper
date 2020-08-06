@@ -63,6 +63,7 @@ def load_UI():
     
     window = tk.Tk()
     window.title("Victoria 2 Mapper")
+    window.iconbitmap('Victoria2.ico')
     
     save_file_entry = tk.Entry(width=100)
     mod_dir = tk.Entry(width=100)
@@ -87,13 +88,19 @@ def load_UI():
     
     progress = tk.ttk.Progressbar()
     
-    save_file_entry.grid(row = 0, column = 0, padx=3, pady=3)
-    ld_save.grid(row = 0, column = 1, padx=3, pady=3)
-    mod_dir.grid(row = 1, column = 0, padx=3, pady=3)
-    ld_mod.grid(row = 1, column = 1, padx=3, pady=3)
-    map_type_entry.grid(row = 2, column = 0, padx=3, pady=3)
-    make_button.grid(row = 3, column = 0, padx=3, pady=3)
-    progress.grid(row = 4, column = 0, padx=3, pady=3)
+    tk.Label(text="Save File:").grid(row = 0, column = 0, padx=3, pady=3)
+    save_file_entry.grid(row = 0, column = 1, padx=3, pady=3)
+    ld_save.grid(row = 0, column = 2, padx=3, pady=3)
+    
+    tk.Label(text="Mod Directory:").grid(row = 1, column = 0, padx=3, pady=3)
+    mod_dir.grid(row = 1, column = 1, padx=3, pady=3)
+    ld_mod.grid(row = 1, column = 2, padx=3, pady=3)
+    
+    tk.Label(text="Parameters:").grid(row = 2, column = 0, padx=3, pady=3)
+    map_type_entry.grid(row = 2, column = 1, padx=3, pady=3)
+    
+    make_button.grid(row = 3, column = 1, padx=3, pady=3)
+    progress.grid(row = 4, column = 1, padx=3, pady=3)
     window.mainloop()
 
 # Map Function #
@@ -101,25 +108,24 @@ def load_UI():
 def draw_map(map_func):
     global test_map
     # Some poorly made maps have invalid colors, this uses the previous color as a backup.
-    prev_color = None
+    prev_color = None # Previous color used on the province map
+    prev_draw = None 
     
     for x in range(vicmap.MAP_W):
         for y in range(vicmap.MAP_H):
             this_color = vicmap.pixel_map[x, y]
-            if (vicmap.pixel_map[x, y] == (0, 0, 0)):
+            if (this_color == (0, 0, 0)):
                 this_color = prev_color
-            else:
-                prev_color = vicmap.pixel_map[x, y]
-            
             this_prov = province.color_dict[this_color]
-            
             test_map[x, vicmap.MAP_H - y - 1] = map_func(this_prov, x, y)
+            prev_color = this_color
 
 
 def pop_attr_map(attr):
     
     attr_dict = {
         "religion"  : population.religions,
+        "culture"   : population.cultures,
         "kind"      : population.pop_types
     }
     attr_list = attr_dict[attr]
@@ -227,6 +233,11 @@ def make_map():
     # Intertpret what kind of map the user wants.
     map_types = {
         "population" : (population_heatmap, 0),
+        
+        "total_savings" : (pop_total_savings, 0),
+        "average_savings" : (pop_average_savings, 0),
+        "magnitude_savings" : (pop_magnitude_savings, 0),
+        
         "attr_percent" : (pop_attr_percent_map, 2),
         "attr_heatmap" : (pop_attr_heatmap, 2),
         "attr" : (pop_attr_map, 1)
@@ -249,7 +260,8 @@ def make_map():
     progress.text = "Loading Files..."
     vicmap.load_map(mod_dir_loc + "/map/provinces.bmp")
     province.load_provinces(mod_dir_loc + "/map/definition.csv")
-    
+    population.load_culture(mod_dir_loc + "/common/cultures.txt")
+    # print(population.cultures)
     
     progress.text = "Reading Save..."
     
