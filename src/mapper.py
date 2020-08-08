@@ -47,13 +47,16 @@ def read_save():
         if bool(re.search("^\d+=$", line)):
             current_prov = int(split_dec(line)[0])
             save_file.__next__()
-            save_file.__next__()
+            if not bool(re.search("\tname", save_file.__next__())):
+                continue
             save_file.__next__()
             line = save_file.__next__()
-            if line.strip() == "}":
+            if re.search("^}$", line.strip()):
                 province.id_dict[current_prov].is_water = True
         elif bool(re.search(population.pop_regex, line.strip())):
             population.POP(save_file, current_prov, split_dec(line)[0])
+        elif bool(re.search("battle=", line)):
+            province.make_battle(save_file)
     print(i)
     
 
@@ -224,6 +227,18 @@ def population_heatmap():
             return (255, 255, 255)
         return (int(255*(this_prov.total_pop/province.largest_prov_pop)), 0, 0)
     return out_func
+    
+
+def battle_death_map():
+    
+    most = max(province.provinces, key=lambda prov: prov.battle_deaths).battle_deaths
+    
+    def out_func(this_prov, x, y):
+        if this_prov.is_water:
+            return (255, 255, 255)
+        return (int(255*(this_prov.battle_deaths/most)), 0, 0)
+    
+    return out_func
 
 
 def make_map():
@@ -240,7 +255,9 @@ def make_map():
         
         "attr_percent" : (pop_attr_percent_map, 2),
         "attr_heatmap" : (pop_attr_heatmap, 2),
-        "attr" : (pop_attr_map, 1)
+        "attr" : (pop_attr_map, 1),
+        
+        "battle_deaths" : (battle_death_map, 0)
     }
     
     params = map_type_entry.get().split(sep=' ')
@@ -261,7 +278,6 @@ def make_map():
     vicmap.load_map(mod_dir_loc + "/map/provinces.bmp")
     province.load_provinces(mod_dir_loc + "/map/definition.csv")
     population.load_culture(mod_dir_loc + "/common/cultures.txt")
-    # print(population.cultures)
     
     progress.text = "Reading Save..."
     
@@ -275,6 +291,9 @@ def make_map():
     
     for prov in province.provinces:
         all_pops += prov.POPs
+    
+    print(province.id_dict[15])
+    print(province.id_dict[15].POPs)
     
     global_population = sum([prov.total_pop for prov in province.provinces])
     

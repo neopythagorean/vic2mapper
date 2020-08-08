@@ -1,4 +1,5 @@
 import csv
+import re
 import operator
 
 provinces = []
@@ -54,6 +55,7 @@ class Province:
         
         self.POPs = []
         self.total_pop = 0
+        self.battle_deaths = 0
         
         # In base vic2's defines.csv Zouar has a color with a . at the end for some reason?
         self.color = (int(info_arr[1]), int(info_arr[2]), int(info_arr[3].replace('.', '')))
@@ -65,6 +67,23 @@ class Province:
     def __str__(self):
         return f"{self.prov_id}: {self.color}, {self.name}, {self.is_water}"
         
+
+def split_dec(line):
+    sides = line.split("=")
+    return (sides[0].strip(), sides[1].strip())
+    
+def make_battle(fiter):
+    fiter.__next__()
+    fiter.__next__()
+    location = id_dict[int(split_dec(fiter.__next__())[1])]
+    belligerents = 0
+    while belligerents < 2:
+        line = fiter.__next__()
+        if bool(re.search("losses", line)):
+            belligerents += 1
+            location.battle_deaths += int(split_dec(line)[1])
+    
+    
 
 def load_provinces(location):
     global provinces
@@ -80,4 +99,5 @@ def get_most(attr, kind):
         if amnt > most:
             most = amnt
     return most
+
 

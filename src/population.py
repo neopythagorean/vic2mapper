@@ -111,6 +111,8 @@ class POP:
         line = fiter.__next__()
         self. money = float(split_dec(line)[1])
         province.id_dict[current_prov].POPs.append(self)
+        if (province.id_dict[current_prov].is_water):
+            province.id_dict[current_prov].is_water = False
     
     def __str__(self):
         return f"{self.pop_id}: {self.kind} {self.culture}, {self.religion} (${self.money})\t{self.size}"
