@@ -82,12 +82,10 @@ def make_battle(fiter):
         if bool(re.search("losses", line)):
             belligerents += 1
             location.battle_deaths += int(split_dec(line)[1])
-    
-    
 
 def load_provinces(location):
     global provinces
-    prov_file = open(location)
+    prov_file = open(location, encoding='iso-8859-1')
     prov_csv = csv.reader(prov_file, delimiter=';')
     prov_csv.__next__() # Skip header
     provinces = [Province(row) for row in prov_csv]
@@ -99,5 +97,4 @@ def get_most(attr, kind):
         if amnt > most:
             most = amnt
     return most
-
 

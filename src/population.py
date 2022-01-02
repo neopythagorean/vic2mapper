@@ -78,7 +78,7 @@ def make_pop_regex():
     pop_regex += ")="
 
 def load_culture(cultures_loc):
-    cultures_file = open(cultures_loc, "r")
+    cultures_file = open(cultures_loc, "r", encoding='iso-8859-1')
     bracket_stack = 0
     current_culture = ""
     for line in cultures_file:

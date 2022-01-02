@@ -14,12 +14,10 @@ import population
 import province
 import vicmap
 
-
 mod_dir_loc = ""
 mod_dir = None
 save_file_entry = None
 save_file_loc = ""
-save_file = None
 
 map_type_entry = None
 map_type = ""
@@ -31,19 +29,22 @@ all_pops = []
 test_map = None
 progress = None
 
+gui_mode = True
+
+verbose = False
+
+out_file_location = ""
+
 def split_dec(line):
     sides = line.split("=")
     return (sides[0].strip(), sides[1].strip())
 
 
 def open_save(location):
-    global save_file
-    save_file = open(location, "r")
+    return open(location, "r", encoding='iso-8859-1')
     
 
-def read_save():
-    global save_file
-    
+def read_save(save_file):
     i = 0
     current_prov = None
     for line in save_file:
@@ -89,8 +90,11 @@ def load_UI():
     ld_save = tk.Button(text="Choose Save", command=set_save_file)
     
     map_type_entry = tk.Entry(width = 100)
+
+    def make_map_ui():
+        make_map(map_type_entry.get())
     
-    make_button = tk.Button(text="Make Map", command=threading.Thread(target=make_map).start)
+    make_button = tk.Button(text="Make Map", command=threading.Thread(target=make_map_ui).start)
     
     progress = tk.ttk.Progressbar()
     
@@ -244,7 +248,7 @@ def battle_death_map():
     return out_func
 
 
-def make_map():
+def make_map(params):
     global global_population, mean_savings, sd_savings, all_pops, test_map, progress, save_file_loc, mod_dir_loc
     
     
@@ -263,7 +267,7 @@ def make_map():
         "battle_deaths" : (battle_death_map, 0)
     }
     
-    params = map_type_entry.get().split(sep=' ')
+    params = params.split(' ')
     
     map_type_func = map_types[params[0]][0]
     map_type_param_amnt = map_types[params[0]][1]
@@ -277,27 +281,24 @@ def make_map():
     
     
     population.make_pop_regex()
-    progress.text = "Loading Files..."
+    #progress.text = "Loading Files..."
     vicmap.load_map(mod_dir_loc + "/map/provinces.bmp")
     province.load_provinces(mod_dir_loc + "/map/definition.csv")
     population.load_culture(mod_dir_loc + "/common/cultures.txt")
     
-    progress.text = "Reading Save..."
+    #progress.text = "Reading Save..."
     
-    open_save(save_file_loc)
-    read_save()
+    save_file = open_save(save_file_loc)
+    read_save(save_file)
     
-    progress.text = "Doing Stats..."
+    #progress.text = "Doing Stats..."
     
     for prov in province.provinces:
         prov.get_population()
     
     for prov in province.provinces:
         all_pops += prov.POPs
-    
-    print(province.id_dict[15])
-    print(province.id_dict[15].POPs)
-    
+     
     global_population = sum([prov.total_pop for prov in province.provinces])
     
     mean_savings += sum([pop.money for pop in all_pops]) / global_population
@@ -307,11 +308,11 @@ def make_map():
     img = Image.new('RGB', (vicmap.MAP_W, vicmap.MAP_H), "BLACK")
     test_map = img.load()
     
-    progress.text = "Drawing Map..."
+    #progress.text = "Drawing Map..."
     
     draw_map(map_type_func(*map_type_func_params))
 
-    img.save("map.png")
+    img.save(out_file_loc)
     img.show()
 
 def print_license():
@@ -341,13 +342,14 @@ SOFTWARE.
     print (license)
 
 def command_line():
+    global mod_dir_loc, save_file_loc, out_file_loc
     parser = argparse.ArgumentParser(description='Mapping tool for Victoria 2.')
     parser.add_argument('desc', type=str, nargs='?', help='map description string')
     parser.add_argument('-o', type=str, nargs='?', default='map_out.png', help='out file')
     parser.add_argument('-s', type=str, nargs=1, help='save file')
     parser.add_argument('-m', type=str, nargs=1, help='mod directory')
     parser.add_argument('-g', type=str, nargs=1, help='game directory')
-    parser.add_argument('--silent', action='store_true', help='silent mode')
+    parser.add_argument('--verbose', action='store_true', help='print debug info')
     parser.add_argument('--gui', action='store_true', help='force GUI')
     parser.add_argument('--license', action='store_true', help='show license information')
     p_args = parser.parse_args(sys.argv[1:])
@@ -364,7 +366,7 @@ def command_line():
     mod_dir_loc = p_args.m[0]
     save_file_loc = p_args.s[0]
     out_file_loc = p_args.o
-    make_map(p_args.desc[0])
+    make_map(p_args.desc)
 
 def main():
     if len(sys.argv) == 1:
