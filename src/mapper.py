@@ -6,6 +6,8 @@ import argparse
 
 from os.path import exists
 
+import time
+
 import math
 import re
 import tkinter as tk
@@ -17,10 +19,8 @@ import province
 import vicmap
 
 mod_dir_loc = ""
-save_file_entry = None
 save_file_loc = ""
 
-map_type_entry = None
 map_type = ""
 
 global_population = 0
@@ -35,6 +35,12 @@ gui_mode = True
 verbose = False
 
 out_file_location = "map_out.png"
+
+def vprint(s):
+    if verbose:
+        print(s)
+    if gui_mode:
+        pass # Do something to the progress bar idk
 
 # Loads a game file from the mod directory, or if missing, from the game directory.
 def get_game_file_loc(location):
@@ -72,12 +78,12 @@ def read_save(save_file):
             population.POP(save_file, current_prov, split_dec(line)[0])
         elif bool(re.search("battle=", line)):
             province.make_battle(save_file)
-    print(i)
+    vprint(f"Lines parsed: {i}")
     
 
 def load_UI():
     
-    global progress, map_type_entry, save_file_entry    
+    global progress  
 
     window = tk.Tk()
     window.title("Victoria 2 Mapper")
@@ -291,17 +297,19 @@ def make_map(params):
     
     
     population.make_pop_regex()
-    #progress.text = "Loading Files..."
+
+    vprint("Loading Files...")
+
     vicmap.load_map(get_game_file_loc("/map/provinces.bmp"))
     province.load_provinces(get_game_file_loc("/map/definition.csv"))
     population.load_culture(get_game_file_loc("/common/cultures.txt"))
     
-    #progress.text = "Reading Save..."
+    vprint("Reading Save...")
     
     save_file = open_save(save_file_loc)
     read_save(save_file)
     
-    #progress.text = "Doing Stats..."
+    vprint("Doing Stats...")
     
     for prov in province.provinces:
         prov.get_population()
@@ -318,7 +326,7 @@ def make_map(params):
     img = Image.new('RGB', (vicmap.MAP_W, vicmap.MAP_H), "BLACK")
     test_map = img.load()
     
-    #progress.text = "Drawing Map..."
+    vprint("Drawing Map...")
     
     draw_map(map_type_func(*map_type_func_params))
 
@@ -352,7 +360,7 @@ SOFTWARE.
     print (license)
 
 def command_line():
-    global mod_dir_loc, save_file_loc, out_file_loc
+    global mod_dir_loc, save_file_loc, out_file_loc, verbose
     parser = argparse.ArgumentParser(description='Mapping tool for Victoria 2.')
     parser.add_argument('desc', type=str, nargs='?', help='map description string')
     parser.add_argument('-o', type=str, nargs='?', default='map_out.png', help='out file')
@@ -363,6 +371,10 @@ def command_line():
     parser.add_argument('--gui', action='store_true', help='force GUI')
     parser.add_argument('--license', action='store_true', help='show license information')
     p_args = parser.parse_args(sys.argv[1:])
+
+    verbose = p_args.verbose
+
+    vprint("--VICTORIA 2 MAPPER--")
 
     if p_args.gui:
         # Force GUI
@@ -377,7 +389,11 @@ def command_line():
     game_dir = p_args.g[0]
     save_file_loc = p_args.s[0]
     out_file_loc = p_args.o
+
+    start = time.perf_counter()
     make_map(p_args.desc)
+    elapsed = time.perf_counter() - start
+    vprint(f"Done in {elapsed:.3f}s")
 
 def main():
     if len(sys.argv) == 1:
