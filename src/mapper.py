@@ -66,7 +66,6 @@ def load_UI():
     
     window = tk.Tk()
     window.title("Victoria 2 Mapper")
-    window.iconbitmap('Victoria2.ico')
     
     save_file_entry = tk.Entry(width=100)
     mod_dir = tk.Entry(width=100)
