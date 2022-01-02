@@ -1,5 +1,9 @@
 from PIL import Image
 
+import sys
+
+import argparse
+
 import math
 import re
 import tkinter as tk
@@ -310,7 +314,66 @@ def make_map():
     img.save("map.png")
     img.show()
 
-load_UI()
+def print_license():
+    license = """
+MIT License
+
+Copyright (c) 2020 neopythagorean
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+    print (license)
+
+def command_line():
+    parser = argparse.ArgumentParser(description='Mapping tool for Victoria 2.')
+    parser.add_argument('desc', type=str, nargs='?', help='map description string')
+    parser.add_argument('-o', type=str, nargs='?', default='map_out.png', help='out file')
+    parser.add_argument('-s', type=str, nargs=1, help='save file')
+    parser.add_argument('-m', type=str, nargs=1, help='mod directory')
+    parser.add_argument('-g', type=str, nargs=1, help='game directory')
+    parser.add_argument('--silent', action='store_true', help='silent mode')
+    parser.add_argument('--gui', action='store_true', help='force GUI')
+    parser.add_argument('--license', action='store_true', help='show license information')
+    p_args = parser.parse_args(sys.argv[1:])
+
+    if p_args.gui:
+        # Force GUI
+        load_UI()
+        return
+
+    if p_args.license:
+        print_license()
+        return
+
+    mod_dir_loc = p_args.m[0]
+    save_file_loc = p_args.s[0]
+    out_file_loc = p_args.o
+    make_map(p_args.desc[0])
+
+def main():
+    if len(sys.argv) == 1:
+        # No Arguments -- load GUI
+        load_UI()
+    else:
+        command_line()
+
+main()
 
 
 
