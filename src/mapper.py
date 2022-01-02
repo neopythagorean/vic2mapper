@@ -4,6 +4,8 @@ import sys
 
 import argparse
 
+from os.path import exists
+
 import math
 import re
 import tkinter as tk
@@ -15,7 +17,6 @@ import province
 import vicmap
 
 mod_dir_loc = ""
-mod_dir = None
 save_file_entry = None
 save_file_loc = ""
 
@@ -33,7 +34,16 @@ gui_mode = True
 
 verbose = False
 
-out_file_location = ""
+out_file_location = "map_out.png"
+
+# Loads a game file from the mod directory, or if missing, from the game directory.
+def get_game_file_loc(location):
+    if exists(mod_dir_loc + location):
+        return mod_dir_loc + location
+    elif exists(game_dir + location):
+        return game_dir + location
+    else:
+        sys.exit("File not found " + location)
 
 def split_dec(line):
     sides = line.split("=")
@@ -67,8 +77,8 @@ def read_save(save_file):
 
 def load_UI():
     
-    global progress, map_type_entry, save_file_entry, mod_dir
-    
+    global progress, map_type_entry, save_file_entry    
+
     window = tk.Tk()
     window.title("Victoria 2 Mapper")
     
@@ -282,9 +292,9 @@ def make_map(params):
     
     population.make_pop_regex()
     #progress.text = "Loading Files..."
-    vicmap.load_map(mod_dir_loc + "/map/provinces.bmp")
-    province.load_provinces(mod_dir_loc + "/map/definition.csv")
-    population.load_culture(mod_dir_loc + "/common/cultures.txt")
+    vicmap.load_map(get_game_file_loc("/map/provinces.bmp"))
+    province.load_provinces(get_game_file_loc("/map/definition.csv"))
+    population.load_culture(get_game_file_loc("/common/cultures.txt"))
     
     #progress.text = "Reading Save..."
     
@@ -313,7 +323,7 @@ def make_map(params):
     draw_map(map_type_func(*map_type_func_params))
 
     img.save(out_file_loc)
-    img.show()
+    #img.show()
 
 def print_license():
     license = """
@@ -364,6 +374,7 @@ def command_line():
         return
 
     mod_dir_loc = p_args.m[0]
+    game_dir = p_args.g[0]
     save_file_loc = p_args.s[0]
     out_file_loc = p_args.o
     make_map(p_args.desc)
